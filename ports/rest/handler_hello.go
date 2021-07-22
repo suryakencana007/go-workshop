@@ -2,8 +2,12 @@ package rest
 
 import (
 	"context"
+	"fmt"
 	"github.com/go-chi/chi/v5"
+	"io"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strconv"
 
 	pkgHttp "go-workshop/pkg/http"
@@ -51,5 +55,40 @@ func (h *Hello) Upload(w http.ResponseWriter, r *http.Request) {
 		"Status":  strconv.Itoa(http.StatusAccepted),
 		"Handler": "Upload",
 	}
+	if r.Method == http.MethodPost {
+		if err := r.ParseMultipartForm(32 << 20); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		f, fh, err := r.FormFile("upload-file")
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		defer f.Close()
+
+		dir, err := os.Getwd()
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		fileLocation := filepath.Join(dir, "files", fh.Filename)
+		targetFile, err := os.OpenFile(fileLocation, os.O_WRONLY|os.O_CREATE, 0666)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		defer targetFile.Close()
+
+		if _, err := io.Copy(targetFile, f); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+	} else {
+		http.Error(w, fmt.Errorf("%s method not allowed", r.Method).Error(), http.StatusMethodNotAllowed)
+		return
+	}
+
 	_ = pkgHttp.RequestJSONBody(w, r, http.StatusAccepted, payload)
 }

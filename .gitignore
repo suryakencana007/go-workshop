@@ -21,3 +21,5 @@ bin/**
 **cert/**
 .env
 **/.env
+
+files/*

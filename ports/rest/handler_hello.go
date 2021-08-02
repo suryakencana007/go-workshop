@@ -3,12 +3,13 @@ package rest
 import (
 	"context"
 	"fmt"
-	"github.com/go-chi/chi/v5"
 	"io/ioutil"
 	"net/http"
 	"os"
 	"path/filepath"
 	"strconv"
+
+	"github.com/go-chi/chi/v5"
 
 	pkgHttp "go-workshop/pkg/http"
 )
@@ -103,5 +104,9 @@ func (h *Hello) Upload(w http.ResponseWriter, r *http.Request) {
 	// write this byte array to our temporary file
 	tempFile.Write(fileBytes)
 
+	r.ParseForm()
+	for key, val := range r.Form {
+		payload[key] = val[0]
+	}
 	_ = pkgHttp.RequestJSONBody(w, r, http.StatusAccepted, payload)
 }
